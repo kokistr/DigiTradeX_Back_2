@@ -1,5 +1,6 @@
 # config.py
 import os
+import tempfile
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -24,9 +25,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key_should_be_at_least_32_char
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
-# アプリケーション設定
-UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "./uploads")
-OCR_TEMP_FOLDER = os.getenv("OCR_TEMP_FOLDER", "./ocr_temp")
+# アプリケーション設定 - 一時ディレクトリを動的に取得
+UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", tempfile.gettempdir())
+OCR_TEMP_FOLDER = os.getenv("OCR_TEMP_FOLDER", tempfile.gettempdir())
 
 # 開発モード設定
 DEV_MODE = os.getenv("DEV_MODE", "True").lower() in ("true", "1", "t")
