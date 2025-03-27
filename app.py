@@ -12,6 +12,7 @@ import json
 from datetime import datetime, timedelta
 import re
 import logging
+import tempfile
 
 from database import SessionLocal, engine, test_db_connection
 import models
@@ -480,10 +481,30 @@ async def debug_status():
         }
     }
 
+# ヘルスチェック用エンドポイント
+@app.get("/api/health")
+async def health_check():
+    """ヘルスチェック用のエンドポイント"""
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat(),
+        "system_status": {
+            "upload_dir": os.path.exists(config.UPLOAD_FOLDER),
+            "tmp_dir": os.path.exists(tempfile.gettempdir()),
+        }
+    }
+
 # 起動時のカスタム処理
 @app.on_event("startup")
 async def startup_event():
     logger.info("アプリケーション起動")
+    logger.info(f"UPLOAD_FOLDER: {config.UPLOAD_FOLDER}")
+    logger.info(f"OCR_TEMP_FOLDER: {config.OCR_TEMP_FOLDER}")
+    
+    # ディレクトリの再作成
+    os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(config.OCR_TEMP_FOLDER, exist_ok=True)
     
     # 初期データ投入（開発環境のみ）
     if config.DEV_MODE:
