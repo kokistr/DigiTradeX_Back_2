@@ -46,7 +46,7 @@ app = FastAPI(title="DigiTradeX API", description="PO管理システムのAPI")
 # CORSミドルウェアの設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 本番環境では適切なオリジンを指定
+    allow_origins=["https://tech0-gen-8-step4-dtx-pofront-b8dygjdpcgcbg8cd.canadacentral-01.azurewebsites.net"],  # 本番環境では適切なオリジンを指定
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
