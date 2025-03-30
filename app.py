@@ -341,6 +341,48 @@ async def get_po_list(
         logger.error(f"PO一覧取得エラー: {str(e)}")
         raise HTTPException(status_code=500, detail=f"PO一覧の取得に失敗しました: {str(e)}")
 
+# PO詳細の製品情報を取得するエンドポイント
+@app.get("/api/po/{po_id}/products")
+async def get_po_products(
+    po_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    特定のPOに関連する製品情報を取得する
+    """
+    try:
+        # POの存在確認
+        po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == po_id).first()
+        if not po:
+            logger.warning(f"製品情報取得失敗（存在しないPO）: ID={po_id}")
+            raise HTTPException(status_code=404, detail="指定されたPOが見つかりません")
+        
+        # 製品情報を取得
+        products = db.query(models.OrderItem).filter(models.OrderItem.po_id == po_id).all()
+        
+        # 結果の整形
+        result = []
+        for product in products:
+            product_info = {
+                "id": product.id,
+                "po_id": product.po_id,
+                "product_name": product.product_name,
+                "quantity": product.quantity,
+                "unit_price": product.unit_price,
+                "subtotal": product.subtotal
+            }
+            result.append(product_info)
+        
+        logger.info(f"PO製品情報取得: PO ID={po_id}, 製品数={len(result)}")
+        return {"success": True, "products": result}
+    
+    except HTTPException:
+        raise  # HTTPExceptionはそのまま再送出
+    except Exception as e:
+        logger.error(f"製品情報取得エラー: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"製品情報の取得に失敗しました: {str(e)}")
+
 @app.patch("/api/po/{po_id}/status")
 async def update_po_status(
     po_id: int,
