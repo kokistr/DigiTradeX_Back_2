@@ -80,7 +80,6 @@ class OCRResult(Base):
 
     ocr_id = Column(Integer, primary_key=True, index=True)
     po_id = Column(Integer, ForeignKey("PurchaseOrders.po_id"), nullable=True)
-    file_path = Column(String(255), nullable=False)
     raw_text = Column(Text, nullable=False)
     processed_data = Column(Text, nullable=True)
     status = Column(String(50), nullable=False, default="手配前")
