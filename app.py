@@ -47,7 +47,7 @@ app = FastAPI(title="DigiTradeX API", description="PO管理システムのAPI")
 # CORSミドルウェアの設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://tech0-gen-8-step4-dtx-pofront-b8dygjdpcgcbg8cd.canadacentral-01.azurewebsites.net"],  # 本番環境では適切なオリジンを指定
+    allow_origins=["https://tech0-gen-8-step4-dtx-pofront-b8dygjdpcgcbg8cd.canadacentral-01.azurewebsites.net"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -154,14 +154,14 @@ async def upload_document(
         db.commit()
         db.refresh(ocr_result)
         
-        logger.info(f"Created OCR result record with ID: {ocr_result.id}")
+        logger.info(f"Created OCR result record with ID: {ocr_result.ocr_id}")
         
         # バックグラウンドでOCR処理
         if background_tasks:
             background_tasks.add_task(
                 process_document,
                 file_path=file_location,
-                ocr_id=ocr_result.id,
+                ocr_id=ocr_result.ocr_id,
                 db=db
             )
             logger.info(f"Added background task for OCR processing")
@@ -173,7 +173,7 @@ async def upload_document(
             db.commit()
         
         return {
-            "ocrId": str(ocr_result.id), 
+            "ocrId": str(ocr_result.ocr_id), 
             "status": "processing"
         }
 
@@ -190,13 +190,13 @@ async def get_ocr_status(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    ocr_result = db.query(models.OCRResult).filter(models.OCRResult.id == ocr_id).first()
+    ocr_result = db.query(models.OCRResult).filter(models.OCRResult.ocr_id == ocr_id).first()
     if not ocr_result:
         logger.warning(f"OCR結果が見つかりません: ID={ocr_id}")
         raise HTTPException(status_code=404, detail="指定されたOCR結果が見つかりません")
     
     logger.info(f"OCRステータス取得: ID={ocr_id}, ステータス={ocr_result.status}")
-    return {"ocrId": ocr_result.id, "status": ocr_result.status}
+    return {"ocrId": ocr_result.ocr_id, "status": ocr_result.status}
 
 @app.get("/api/ocr/extract/{ocr_id}")
 async def extract_order_data(
@@ -204,7 +204,7 @@ async def extract_order_data(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    ocr_result = db.query(models.OCRResult).filter(models.OCRResult.id == ocr_id).first()
+    ocr_result = db.query(models.OCRResult).filter(models.OCRResult.ocr_id == ocr_id).first()
     if not ocr_result:
         logger.warning(f"OCR結果が見つかりません: ID={ocr_id}")
         raise HTTPException(status_code=404, detail="指定されたOCR結果が見つかりません")
@@ -217,7 +217,7 @@ async def extract_order_data(
     extracted_data = extract_po_data(ocr_result.raw_text)
     
     logger.info(f"OCRデータ抽出: ID={ocr_id}")
-    return {"ocrId": ocr_result.id, "data": extracted_data}
+    return {"ocrId": ocr_result.ocr_id, "data": extracted_data}
 
 # PO関連のエンドポイント
 @app.post("/api/po/register")
@@ -246,7 +246,7 @@ async def register_po(
         # 製品の登録
         for product in po_data.products:
             order_item = models.OrderItem(
-                po_id=po.id,
+                po_id=po.po_id,  # po_idに変更
                 product_name=product.name,  # フィールド名を修正
                 quantity=product.quantity,
                 unit_price=product.unitPrice,  # フィールド名を修正
@@ -256,8 +256,8 @@ async def register_po(
         
         db.commit()
         
-        logger.info(f"PO登録完了: ID={po.id}, PO番号={po_data.poNumber}, 顧客={po_data.customer}")
-        return {"success": True, "poId": po.id}
+        logger.info(f"PO登録完了: ID={po.po_id}, PO番号={po_data.poNumber}, 顧客={po_data.customer}")
+        return {"success": True, "poId": po.po_id}
     
     except Exception as e:
         logger.error(f"PO登録エラー: {str(e)}")
@@ -276,11 +276,11 @@ async def get_po_list(
         result = []
         for po in po_list:
             # 製品情報の取得
-            items = db.query(models.OrderItem).filter(models.OrderItem.po_id == po.id).all()
+            items = db.query(models.OrderItem).filter(models.OrderItem.po_id == po.po_id).all()
             
             # 追加情報の取得
-            input_info = db.query(models.Input).filter(models.Input.po_id == po.id).first()
-            shipping_info = db.query(models.ShippingSchedule).filter(models.ShippingSchedule.po_id == po.id).first()
+            input_info = db.query(models.Input).filter(models.Input.po_id == po.po_id).first()
+            shipping_info = db.query(models.ShippingSchedule).filter(models.ShippingSchedule.po_id == po.po_id).first()
             
             # 製品名の結合
             product_names = ", ".join([item.product_name for item in items])
@@ -298,29 +298,29 @@ async def get_po_list(
                         total_quantity += quantity_value
                     except (ValueError, TypeError):
                         # 変換できない場合は0として扱う
-                        logger.warning(f"数量変換エラー: '{item.quantity}'を数値に変換できません。ID={po.id}")
+                        logger.warning(f"数量変換エラー: '{item.quantity}'を数値に変換できません。ID={po.po_id}")
             
             # 結果の作成
             po_info = {
-                "id": po.id,
+                "id": po.po_id,  
                 "status": po.status,
                 "acquisitionDate": input_info.po_acquisition_date if input_info else None,
                 "organization": input_info.organization if input_info else None,
-                "invoice": "完了" if input_info and input_info.invoice_number else "未",
-                "payment": "完了" if input_info and input_info.payment_status == "completed" else "未",
-                "booking": "完了" if shipping_info else "未",
+                "invoice": "完了" if input_info and input_info.invoice_number else "",
+                "payment": "完了" if input_info and input_info.payment_status == "completed" else "",
+                "booking": "完了" if shipping_info else "",
                 "manager": current_user.name,
                 "invoiceNumber": input_info.invoice_number if input_info else None,
                 "poNumber": po.po_number,
                 "customer": po.customer_name,
                 "productName": product_names,
-                "quantity": total_quantity,  # 変更箇所: 計算済みの合計を使用
+                "quantity": total_quantity,  
                 "currency": po.currency,
                 "unitPrice": items[0].unit_price if items else None,
                 "amount": po.total_amount,
                 "paymentTerms": po.payment_terms,
                 "terms": po.shipping_terms,
-                "destination": po.destination,
+                "destination": po.destination,  
                 "transitPoint": shipping_info.transit_point if shipping_info else None,
                 "cutOffDate": shipping_info.cut_off_date if shipping_info else None,
                 "etd": shipping_info.etd if shipping_info else None,
@@ -353,7 +353,7 @@ async def get_po_products(
     """
     try:
         # POの存在確認
-        po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == po_id).first()
+        po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.po_id == po_id).first()
         if not po:
             logger.warning(f"製品情報取得失敗（存在しないPO）: ID={po_id}")
             raise HTTPException(status_code=404, detail="指定されたPOが見つかりません")
@@ -365,7 +365,7 @@ async def get_po_products(
         result = []
         for product in products:
             product_info = {
-                "id": product.id,
+                "id": product.item_id,  
                 "po_id": product.po_id,
                 "product_name": product.product_name,
                 "quantity": product.quantity,
@@ -391,7 +391,7 @@ async def update_po_status(
     db: Session = Depends(get_db)
 ):
     # POの取得
-    po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == po_id).first()
+    po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.po_id == po_id).first()
     if not po:
         logger.warning(f"PO更新失敗（存在しないPO）: ID={po_id}")
         raise HTTPException(status_code=404, detail="指定されたPOが見つかりません")
@@ -422,7 +422,7 @@ async def update_po_memo(
     db: Session = Depends(get_db)
 ):
     # POの取得
-    po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == po_id).first()
+    po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.po_id == po_id).first()
     if not po:
         logger.warning(f"POメモ更新失敗（存在しないPO）: ID={po_id}")
         raise HTTPException(status_code=404, detail="指定されたPOが見つかりません")
@@ -431,8 +431,10 @@ async def update_po_memo(
     input_info = db.query(models.Input).filter(models.Input.po_id == po_id).first()
     if not input_info:
         # 入力情報がない場合は新規作成
+        # ステータスのみデフォルト値を設定し、他の項目はNULL値（デフォルトの動作）を許容
         input_info = models.Input(
             po_id=po_id,
+            shipment_arrangement="手配前",  # ステータスのみデフォルト値を設定
             memo=memo_data.get("memo", "")
         )
         db.add(input_info)
@@ -453,7 +455,7 @@ async def add_shipping_info(
     db: Session = Depends(get_db)
 ):
     # POの取得
-    po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == po_id).first()
+    po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.po_id == po_id).first()
     if not po:
         logger.warning(f"出荷情報追加失敗（存在しないPO）: ID={po_id}")
         raise HTTPException(status_code=404, detail="指定されたPOが見つかりません")
@@ -599,7 +601,7 @@ async def delete_purchase_orders(
         # 各POを削除
         deleted_count = 0
         for po_id in ids:
-            po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == po_id).first()
+            po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.po_id == po_id).first()
             if po:
                 db.delete(po)
                 deleted_count += 1
