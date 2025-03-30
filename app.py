@@ -143,12 +143,12 @@ async def upload_document(
             buffer.write(file_content)
         
         # OCR結果レコード作成
+        # file_pathフィールドを削除し、代わりにprocessed_dataにJSONとして含める
         ocr_result = models.OCRResult(
             user_id=current_user.user_id,
-            file_path=file_location,
             status="processing",
             raw_text="",
-            processed_data="{}"
+            processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename})
         )
         db.add(ocr_result)
         db.commit()
@@ -160,7 +160,7 @@ async def upload_document(
         if background_tasks:
             background_tasks.add_task(
                 process_document,
-                file_path=file_location,
+                file_path=file_location,  # ファイルパスは直接関数に渡す
                 ocr_id=ocr_result.ocr_id,
                 db=db
             )
