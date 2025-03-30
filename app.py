@@ -164,7 +164,7 @@ async def upload_document(
                 ocr_id=ocr_result.ocr_id,
                 db=db
             )
-            logger.info(f"Added background task for OCR processing")
+            logger.info(f"Added background task for OCR processing with file: {file_location}")
         else:
             # 開発環境用: OCRをスキップして直接完了状態にする
             logger.info("No background tasks available, setting result to completed")
