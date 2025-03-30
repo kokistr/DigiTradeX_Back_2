@@ -237,7 +237,7 @@ async def register_po(
             payment_terms=po_data.paymentTerms,  # フィールド名を修正
             shipping_terms=po_data.terms,  # フィールド名を修正
             destination=po_data.destination,
-            status="手配中"  # デフォルトステータス
+            status="手配前"  # デフォルトステータス
         )
         db.add(po)
         db.commit()
