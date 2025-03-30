@@ -142,10 +142,8 @@ async def upload_document(
         with open(file_location, "wb") as buffer:
             buffer.write(file_content)
         
-        # OCR結果レコード作成
-        # file_pathフィールドを削除し、代わりにprocessed_dataにJSONとして含める
+        # OCR結果レコード作成 - user_idフィールドを除外
         ocr_result = models.OCRResult(
-            user_id=current_user.user_id,
             status="processing",
             raw_text="",
             processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename})
@@ -153,6 +151,15 @@ async def upload_document(
         db.add(ocr_result)
         db.commit()
         db.refresh(ocr_result)
+        
+        # ログを記録（ファイルアップロードのアクション）
+        log_entry = models.Log(
+            user_id=current_user.user_id,
+            action="ファイルアップロード",
+            processed_data=json.dumps({"file_name": file.filename, "ocr_id": ocr_result.ocr_id})
+        )
+        db.add(log_entry)
+        db.commit()
         
         logger.info(f"Created OCR result record with ID: {ocr_result.ocr_id}")
         
@@ -256,6 +263,15 @@ async def register_po(
         
         db.commit()
         
+        # PO登録のログ記録
+        log_entry = models.Log(
+            user_id=current_user.user_id,
+            action="PO登録",
+            processed_data=json.dumps({"po_id": po.po_id, "po_number": po_data.poNumber, "customer": po_data.customer})
+        )
+        db.add(log_entry)
+        db.commit()
+        
         logger.info(f"PO登録完了: ID={po.po_id}, PO番号={po_data.poNumber}, 顧客={po_data.customer}")
         return {"success": True, "poId": po.po_id}
     
@@ -334,6 +350,15 @@ async def get_po_list(
             
             result.append(po_info)
         
+        # PO一覧取得のログ記録
+        log_entry = models.Log(
+            user_id=current_user.user_id,
+            action="PO一覧取得",
+            processed_data=json.dumps({"count": len(result)})
+        )
+        db.add(log_entry)
+        db.commit()
+        
         logger.info(f"PO一覧取得: {len(result)}件")
         return {"success": True, "data": result}
     
@@ -374,6 +399,15 @@ async def get_po_products(
             }
             result.append(product_info)
         
+        # 製品情報取得のログ記録
+        log_entry = models.Log(
+            user_id=current_user.user_id,
+            action="製品情報取得",
+            processed_data=json.dumps({"po_id": po_id, "product_count": len(result)})
+        )
+        db.add(log_entry)
+        db.commit()
+        
         logger.info(f"PO製品情報取得: PO ID={po_id}, 製品数={len(result)}")
         return {"success": True, "products": result}
     
@@ -411,6 +445,15 @@ async def update_po_status(
     po.status = status_data.status
     db.commit()
     
+    # ステータス更新のログ記録
+    log_entry = models.Log(
+        user_id=current_user.user_id,
+        action="POステータス更新",
+        processed_data=json.dumps({"po_id": po_id, "old_status": old_status, "new_status": status_data.status})
+    )
+    db.add(log_entry)
+    db.commit()
+    
     logger.info(f"POステータス更新: ID={po_id}, 旧ステータス={old_status}, 新ステータス={status_data.status}")
     return {"success": True, "status": po.status}
 
@@ -442,6 +485,15 @@ async def update_po_memo(
         # 既存の入力情報を更新
         input_info.memo = memo_data.get("memo", "")
     
+    db.commit()
+    
+    # メモ更新のログ記録
+    log_entry = models.Log(
+        user_id=current_user.user_id,
+        action="POメモ更新",
+        processed_data=json.dumps({"po_id": po_id})
+    )
+    db.add(log_entry)
     db.commit()
     
     logger.info(f"POメモ更新: ID={po_id}")
@@ -494,6 +546,15 @@ async def add_shipping_info(
     if shipping_info.booking_number and po.status == "手配中":
         po.status = "手配済"
     
+    db.commit()
+    
+    # 出荷情報更新のログ記録
+    log_entry = models.Log(
+        user_id=current_user.user_id,
+        action="出荷情報更新",
+        processed_data=json.dumps({"po_id": po_id, "booking_number": shipping_info.booking_number})
+    )
+    db.add(log_entry)
     db.commit()
     
     logger.info(f"出荷情報追加/更新: PO ID={po_id}")
@@ -606,6 +667,14 @@ async def delete_purchase_orders(
                 db.delete(po)
                 deleted_count += 1
                 logger.info(f"PO削除: ID={po_id}")
+                
+                # 削除操作のログ記録
+                log_entry = models.Log(
+                    user_id=current_user.user_id,
+                    action="PO削除",
+                    processed_data=json.dumps({"po_id": po_id})
+                )
+                db.add(log_entry)
         
         # 変更をコミット
         db.commit()
