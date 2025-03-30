@@ -17,7 +17,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
     purchase_orders = relationship("PurchaseOrder", back_populates="user")
-    ocr_results = relationship("OCRResult", back_populates="user")
+    logs = relationship("Log", back_populates="user")
 
 
 class PurchaseOrder(Base):
@@ -86,8 +86,7 @@ class OCRResult(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
-    user_id = Column(Integer, ForeignKey("Users.user_id"))
-    user = relationship("User", back_populates="ocr_results")
+    # user_id カラムを削除（テーブル定義書に存在しないため）
     purchase_order = relationship("PurchaseOrder", back_populates="ocr_results")
 
 class Input(Base):
@@ -106,3 +105,15 @@ class Input(Base):
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
     purchase_order = relationship("PurchaseOrder", back_populates="inputs")
+
+# 新しく追加するLogsテーブルのモデル
+class Log(Base):
+    __tablename__ = "Logs"
+
+    log_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("Users.user_id"))
+    action = Column(String(255), nullable=False)
+    processed_data = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="logs")
