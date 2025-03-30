@@ -68,7 +68,9 @@ def process_document(file_path: str, ocr_id: int, db: Session):
             return
         
         # OCR結果を保存
-        update_ocr_result(db, ocr_id, raw_text, "{}", "completed")
+        # 元のファイルパス情報も保存しておく
+        processed_data = json.dumps({"file_path": file_path})
+        update_ocr_result(db, ocr_id, raw_text, processed_data, "completed")
         logger.info(f"OCR処理完了: {file_path}")
         
     except Exception as e:
@@ -86,7 +88,8 @@ def update_ocr_result(db: Session, ocr_id: int, raw_text: str, processed_data: s
     :param status: 処理状態
     :param error_message: エラーメッセージ（オプション）
     """
-    ocr_result = db.query(models.OCRResult).filter(models.OCRResult.id == ocr_id).first()
+    # OCRResultsテーブルのIDカラム名は ocr_id
+    ocr_result = db.query(models.OCRResult).filter(models.OCRResult.ocr_id == ocr_id).first()
     
     if ocr_result:
         ocr_result.raw_text = raw_text
@@ -134,39 +137,6 @@ def extract_po_data(ocr_text: str) -> Dict[str, Any]:
     
     logger.info(f"PO抽出結果: {result}")
     return result
-
-def validate_and_clean_result(result: Dict[str, Any]):
-    """
-    抽出結果を検証してクリーニングします。
-    
-    :param result: 抽出されたデータ
-    """
-    # 製品情報がない場合の処理
-    if not result["products"]:
-        logger.warning("製品情報が抽出されませんでした")
-        result["products"].append({
-            "name": "Unknown Product",
-            "quantity": "",
-            "unitPrice": "",
-            "amount": ""
-        })
-    
-    # 数量が抽出されているが単位が含まれている場合、単位を削除
-    for product in result["products"]:
-        if product["quantity"] and any(unit in product["quantity"] for unit in ["kg", "KG", "mt", "MT"]):
-            product["quantity"] = re.sub(r'[^\d,.]', '', product["quantity"])
-        
-        # 金額のドル記号などを削除
-        if product["unitPrice"] and any(symbol in product["unitPrice"] for symbol in ["$", "USD"]):
-            product["unitPrice"] = re.sub(r'[^\d,.]', '', product["unitPrice"])
-        
-        if product["amount"] and any(symbol in product["amount"] for symbol in ["$", "USD"]):
-            product["amount"] = re.sub(r'[^\d,.]', '', product["amount"])
-    
-    # 合計金額のクリーニング
-    if result["totalAmount"] and any(symbol in result["totalAmount"] for symbol in ["$", "USD"]):
-        result["totalAmount"] = re.sub(r'[^\d,.]', '', result["totalAmount"])
-# validate_and_clean_result と追加機能の実装
 
 def validate_and_clean_result(result: Dict[str, Any]):
     """
@@ -301,7 +271,7 @@ def process_ocr_with_enhanced_extraction(file_path: str, ocr_id: int, db: Sessio
         process_document(file_path, ocr_id, db)
         
         # OCR結果を取得
-        ocr_result = db.query(models.OCRResult).filter(models.OCRResult.id == ocr_id).first()
+        ocr_result = db.query(models.OCRResult).filter(models.OCRResult.ocr_id == ocr_id).first()
         if not ocr_result or ocr_result.status != "completed":
             logger.warning(f"OCR処理が完了していません: ID={ocr_id}")
             return
@@ -315,7 +285,8 @@ def process_ocr_with_enhanced_extraction(file_path: str, ocr_id: int, db: Sessio
         # 抽出結果と統計情報を含む完全な結果を保存
         complete_result = {
             "data": extracted_data,
-            "stats": stats
+            "stats": stats,
+            "file_path": file_path  # ファイルパス情報をJSONに保存
         }
         
         # 結果の保存
@@ -326,4 +297,13 @@ def process_ocr_with_enhanced_extraction(file_path: str, ocr_id: int, db: Sessio
         
     except Exception as e:
         logger.error(f"拡張OCR処理エラー: {str(e)}")
-        update_ocr_result(db, ocr_id, ocr_result.raw_text if ocr_result else "", "{}", "failed", str(e))
+        try:
+            ocr_result = db.query(models.OCRResult).filter(models.OCRResult.ocr_id == ocr_id).first()
+            if ocr_result:
+                ocr_result.status = "failed"
+                processed_data = json.loads(ocr_result.processed_data) if ocr_result.processed_data and ocr_result.processed_data != "{}" else {}
+                processed_data["error"] = str(e)
+                ocr_result.processed_data = json.dumps(processed_data)
+                db.commit()
+        except Exception as inner_e:
+            logger.error(f"エラー情報保存中にエラー発生: {str(inner_e)}")
