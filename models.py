@@ -1,7 +1,7 @@
 # models.py
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float, Numeric, Date
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from database import Base
 
@@ -16,8 +16,8 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_orders = relationship("PurchaseOrders", back_populates="Users")
-    ocr_results = relationship("OCRResults", back_populates="Users")
+    purchase_orders = relationship("PurchaseOrder", back_populates="user")
+    ocr_results = relationship("OCRResult", back_populates="user")
 
 
 class PurchaseOrder(Base):
@@ -31,16 +31,16 @@ class PurchaseOrder(Base):
     total_amount = Column(Numeric(10, 2), nullable=False)
     payment_terms = Column(String(255), nullable=False)
     shipping_terms = Column(String(255), nullable=False)
-    detnination = Column(String(255), nullable=False)
+    destination = Column(String(255), nullable=False)  
     status = Column(String(50), nullable=False, default="手配前")
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    user = relationship("Users", back_populates="PurchaseOrders")
-    order_items = relationship("OrderItem", back_populates="PurchaseOrders", cascade="all, delete-orphan")
-    shipping_schedules = relationship("ShippingSchedule", back_populates="PurchaseOrders", cascade="all, delete-orphan")
-    inputs = relationship("Input", back_populates="PurchaseOrders", cascade="all, delete-orphan")
-    ocr_results = relationship("OCRResult", back_populates="PurchaseOrders", cascade="all, delete-orphan")
+    user = relationship("User", back_populates="purchase_orders")
+    order_items = relationship("OrderItem", back_populates="purchase_order", cascade="all, delete-orphan")
+    shipping_schedules = relationship("ShippingSchedule", back_populates="purchase_order", cascade="all, delete-orphan")
+    inputs = relationship("Input", back_populates="purchase_order", cascade="all, delete-orphan")
+    ocr_results = relationship("OCRResult", back_populates="purchase_order", cascade="all, delete-orphan")
 
 class OrderItem(Base):
     __tablename__ = "OrderItems"
@@ -54,7 +54,7 @@ class OrderItem(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_order = relationship("PurchaseOrders", back_populates="OrderItems")
+    purchase_order = relationship("PurchaseOrder", back_populates="order_items")
 
 class ShippingSchedule(Base):
     __tablename__ = "ShippingSchedules"
@@ -73,13 +73,13 @@ class ShippingSchedule(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_order = relationship("PurchaseOrders", back_populates="ShippingSchedules")
+    purchase_order = relationship("PurchaseOrder", back_populates="shipping_schedules")
 
 class OCRResult(Base):
     __tablename__ = "OCRResults"
 
     ocr_id = Column(Integer, primary_key=True, index=True)
-    po_id = Column(Integer, ForeignKey("PurchaseOrders.po_id"))
+    po_id = Column(Integer, ForeignKey("PurchaseOrders.po_id"), nullable=True)
     file_path = Column(String(255), nullable=False)
     raw_text = Column(Text, nullable=False)
     processed_data = Column(Text, nullable=True)
@@ -88,15 +88,15 @@ class OCRResult(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
     user_id = Column(Integer, ForeignKey("Users.user_id"))
-    user = relationship("Users", back_populates="OCRResults")
-    purchase_order = relationship("PurchaseOrders", back_populates="OCRResults")
+    user = relationship("User", back_populates="ocr_results")
+    purchase_order = relationship("PurchaseOrder", back_populates="ocr_results")
 
 class Input(Base):
     __tablename__ = "Input"
 
     id = Column(Integer, primary_key=True, index=True)
     po_id = Column(Integer, ForeignKey("PurchaseOrders.po_id"))
-    shipment_arrangement = Column(String(255) ,nullable=False)
+    shipment_arrangement = Column(String(255), nullable=False)
     po_acquisition_date = Column(Date, nullable=False)
     organization = Column(String(255), nullable=False)
     invoice_number = Column(String(50), nullable=False)
@@ -106,4 +106,4 @@ class Input(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_order = relationship("PurchaseOrders", back_populates="Input")
+    purchase_order = relationship("PurchaseOrder", back_populates="inputs")
