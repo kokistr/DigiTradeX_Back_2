@@ -80,7 +80,8 @@ class OCRResult(Base):
 
     ocr_id = Column(Integer, primary_key=True, index=True)
     po_id = Column(Integer, ForeignKey("PurchaseOrders.po_id"), nullable=True)
-    raw_text = Column(Text, nullable=False)
+    raw_text = Column(Integer, nullable=False, default=0)  # Textから整数型に変更(DBの型が違う可能性あり)
+    #raw_text = Column(Text, nullable=False)
     processed_data = Column(Text, nullable=True)
     status = Column(String(50), nullable=False, default="手配前")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
