@@ -146,7 +146,8 @@ async def upload_document(
         ocr_result = models.OCRResult(
             status="processing",
             raw_text=0,
-            processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename})
+            processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename}),
+            ocrresultscol1="default_value"  # フィールドを追加
         )
         db.add(ocr_result)
         db.commit()
