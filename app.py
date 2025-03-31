@@ -366,7 +366,7 @@ async def get_po_list(
         db.commit()
         
         logger.info(f"PO一覧取得: {len(result)}件")
-        return {"success": True, "data": result}
+        return {"success": True, "po_list": result}
     
     except Exception as e:
         logger.error(f"PO一覧取得エラー: {str(e)}")
@@ -463,47 +463,55 @@ async def update_po_status(
     logger.info(f"POステータス更新: ID={po_id}, 旧ステータス={old_status}, 新ステータス={status_data.status}")
     return {"success": True, "status": po.status}
 
-@app.patch("/api/po/{po_id}/memo")
+@app.put("/api/po/{po_id}/memo")
 async def update_po_memo(
     po_id: int,
     memo_data: dict,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # POの取得
-    po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.po_id == po_id).first()
-    if not po:
-        logger.warning(f"POメモ更新失敗（存在しないPO）: ID={po_id}")
-        raise HTTPException(status_code=404, detail="指定されたPOが見つかりません")
-    
-    # Input情報の取得または作成
-    input_info = db.query(models.Input).filter(models.Input.po_id == po_id).first()
-    if not input_info:
-        # 入力情報がない場合は新規作成
-        # ステータスのみデフォルト値を設定し、他の項目はNULL値（デフォルトの動作）を許容
-        input_info = models.Input(
-            po_id=po_id,
-            shipment_arrangement="手配前",  # ステータスのみデフォルト値を設定
-            memo=memo_data.get("memo", "")
+    """
+    POのメモを更新するエンドポイント
+    """
+    try:
+        # POの取得
+        po = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.po_id == po_id).first()
+        if not po:
+            logger.warning(f"POメモ更新失敗（存在しないPO）: ID={po_id}")
+            raise HTTPException(status_code=404, detail="指定されたPOが見つかりません")
+        
+        # Input情報の取得または作成
+        input_info = db.query(models.Input).filter(models.Input.po_id == po_id).first()
+        if not input_info:
+            # 入力情報がない場合は新規作成
+            input_info = models.Input(
+                po_id=po_id,
+                shipment_arrangement="手配前",  # デフォルト値を設定
+                memo=memo_data.get("memo", "")
+            )
+            db.add(input_info)
+        else:
+            # 既存の入力情報を更新
+            input_info.memo = memo_data.get("memo", "")
+        
+        db.commit()
+        
+        # メモ更新のログ記録
+        log_entry = models.Log(
+            user_id=current_user.user_id,
+            action="POメモ更新",
+            processed_data=json.dumps({"po_id": po_id, "memo": memo_data.get("memo", "")})
         )
-        db.add(input_info)
-    else:
-        # 既存の入力情報を更新
-        input_info.memo = memo_data.get("memo", "")
+        db.add(log_entry)
+        db.commit()
+        
+        logger.info(f"POメモ更新: ID={po_id}")
+        return {"success": True, "memo": input_info.memo}
     
-    db.commit()
-    
-    # メモ更新のログ記録
-    log_entry = models.Log(
-        user_id=current_user.user_id,
-        action="POメモ更新",
-        processed_data=json.dumps({"po_id": po_id})
-    )
-    db.add(log_entry)
-    db.commit()
-    
-    logger.info(f"POメモ更新: ID={po_id}")
-    return {"success": True, "memo": input_info.memo}
+    except Exception as e:
+        db.rollback()  # エラーが発生した場合はロールバック
+        logger.error(f"POメモ更新エラー: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"メモの更新に失敗しました: {str(e)}")
 
 @app.post("/api/po/{po_id}/shipping")
 async def add_shipping_info(
