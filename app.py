@@ -145,7 +145,7 @@ async def upload_document(
         # OCR結果レコード作成 - ocrresultscol1フィールドを設定
         ocr_result = models.OCRResult(
             status="processing",
-            raw_text=0,
+            raw_text="0",
             processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename}),
             ocrresultscol1="default_value"  # ocrresultscol1フィールドを追加
         )
