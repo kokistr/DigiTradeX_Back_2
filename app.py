@@ -147,7 +147,7 @@ async def upload_document(
             status="processing",
             raw_text=0,
             processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename}),
-            ocrresultscol1="default_value"  # フィールドを追加
+            #ocrresultscol1="default_value"  # フィールドを追加
         )
         db.add(ocr_result)
         db.commit()
