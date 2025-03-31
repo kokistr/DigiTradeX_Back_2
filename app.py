@@ -142,10 +142,10 @@ async def upload_document(
         with open(file_location, "wb") as buffer:
             buffer.write(file_content)
         
-        # OCR結果レコード作成 - ocrresultscol1フィールドを設定
+        # OCR結果レコード作成 - raw_textに整数値を設定
         ocr_result = models.OCRResult(
             status="processing",
-            raw_text="0",
+            raw_text=0,  # 整数値として0を保存
             processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename}),
             ocrresultscol1="default_value"  # ocrresultscol1フィールドを追加
         )
@@ -177,7 +177,11 @@ async def upload_document(
             # 開発環境用: OCRをスキップして直接完了状態にする
             logger.info("No background tasks available, setting result to completed")
             ocr_result.status = "completed"
-            ocr_result.raw_text = "Sample OCR text for development"
+            ocr_result.raw_text = 0
+            ocr_result.processed_data = json.dumps({
+                "file_path": file_location,
+                "text_content": "Sample OCR text for development"
+            })
             db.commit()
         
         return {
@@ -222,7 +226,8 @@ async def extract_order_data(
         raise HTTPException(status_code=400, detail="OCR処理がまだ完了していません")
     
     # 発注書データの抽出
-    extracted_data = extract_po_data(ocr_result.raw_text)
+    # OCR IDを渡して、extract_po_data関数でテキスト内容を取得
+    extracted_data = extract_po_data(ocr_id)
     
     logger.info(f"OCRデータ抽出: ID={ocr_id}")
     return {"ocrId": ocr_result.ocr_id, "data": extracted_data}
