@@ -145,7 +145,7 @@ async def upload_document(
         # OCR結果レコード作成 - user_idフィールドを除外
         ocr_result = models.OCRResult(
             status="processing",
-            raw_text="　",
+            raw_text=0,
             processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename})
         )
         db.add(ocr_result)
