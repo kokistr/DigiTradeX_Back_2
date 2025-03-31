@@ -145,7 +145,7 @@ async def upload_document(
         # OCR結果レコード作成 - user_idフィールドを除外
         ocr_result = models.OCRResult(
             status="processing",
-            raw_text="",
+            raw_text="　",
             processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename})
         )
         db.add(ocr_result)
@@ -237,12 +237,12 @@ async def register_po(
         # POの作成
         po = models.PurchaseOrder(
             user_id=current_user.user_id,
-            customer_name=po_data.customer,  # フィールド名を修正
-            po_number=po_data.poNumber,  # フィールド名を修正
+            customer_name=po_data.customer,
+            po_number=po_data.poNumber,
             currency=po_data.currency,
-            total_amount=po_data.totalAmount,  # フィールド名を修正
-            payment_terms=po_data.paymentTerms,  # フィールド名を修正
-            shipping_terms=po_data.terms,  # フィールド名を修正
+            total_amount=po_data.totalAmount,
+            payment_terms=po_data.paymentTerms,
+            shipping_terms=po_data.terms,
             destination=po_data.destination,
             status="手配前"  # デフォルトステータス
         )
