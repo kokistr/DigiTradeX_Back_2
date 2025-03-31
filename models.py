@@ -16,8 +16,8 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_orders = relationship("PurchaseOrder", back_populates="user")
-    logs = relationship("Log", back_populates="user")
+    #purchase_orders = relationship("PurchaseOrder", back_populates="user")
+    #logs = relationship("Log", back_populates="user")
 
 
 class PurchaseOrder(Base):
@@ -36,11 +36,11 @@ class PurchaseOrder(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    user = relationship("User", back_populates="purchase_orders")
-    order_items = relationship("OrderItem", back_populates="purchase_order", cascade="all, delete-orphan")
-    shipping_schedules = relationship("ShippingSchedule", back_populates="purchase_order", cascade="all, delete-orphan")
-    inputs = relationship("Input", back_populates="purchase_order", cascade="all, delete-orphan")
-    ocr_results = relationship("OCRResult", back_populates="purchase_order", cascade="all, delete-orphan")
+    #user = relationship("User", back_populates="purchase_orders")
+    #order_items = relationship("OrderItem", back_populates="purchase_order", cascade="all, delete-orphan")
+    #shipping_schedules = relationship("ShippingSchedule", back_populates="purchase_order", cascade="all, delete-orphan")
+    #inputs = relationship("Input", back_populates="purchase_order", cascade="all, delete-orphan")
+    #ocr_results = relationship("OCRResult", back_populates="purchase_order", cascade="all, delete-orphan")
 
 class OrderItem(Base):
     __tablename__ = "OrderItems"
@@ -51,10 +51,10 @@ class OrderItem(Base):
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)
     subtotal = Column(Numeric(10, 2), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
-    updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
+    #created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    #updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_order = relationship("PurchaseOrder", back_populates="order_items")
+    #purchase_order = relationship("PurchaseOrder", back_populates="order_items")
 
 class ShippingSchedule(Base):
     __tablename__ = "ShippingSchedules"
@@ -70,10 +70,21 @@ class ShippingSchedule(Base):
     vessel_name = Column(String(255), nullable=False)
     voyage_number = Column(String(50), nullable=False)
     container_size = Column(String(50), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
-    updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
+    #created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    #updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_order = relationship("PurchaseOrder", back_populates="shipping_schedules")
+    #purchase_order = relationship("PurchaseOrder", back_populates="shipping_schedules")
+
+class Log(Base):
+    __tablename__ = "Logs"
+
+    log_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("Users.user_id"))
+    action = Column(String(255), nullable=False)
+    processed_data = Column(Text, nullable=True)
+    #created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    #user = relationship("User", back_populates="logs")
 
 class OCRResult(Base):
     __tablename__ = "OCRResults"
@@ -84,12 +95,12 @@ class OCRResult(Base):
     #raw_text = Column(Text, nullable=False)
     processed_data = Column(Text, nullable=True)
     status = Column(String(50), nullable=False, default="手配前")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
-    ocrresultscol1 = Column(String(255), nullable=False, default="default_value") ## 3/31追加
+    #created_at = Column(DateTime(timezone=True), server_default=func.now())
+    #updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    #ocrresultscol1 = Column(String(255), nullable=False, default="default_value") ## 3/31追加
 
     # user_id カラムを削除（テーブル定義書に存在しないため）
-    purchase_order = relationship("PurchaseOrder", back_populates="ocr_results")
+    #purchase_order = relationship("PurchaseOrder", back_populates="ocr_results")
 
 class Input(Base):
     __tablename__ = "Input"
@@ -106,16 +117,4 @@ class Input(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP'))
 
-    purchase_order = relationship("PurchaseOrder", back_populates="inputs")
-
-# 新しく追加するLogsテーブルのモデル
-class Log(Base):
-    __tablename__ = "Logs"
-
-    log_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("Users.user_id"))
-    action = Column(String(255), nullable=False)
-    processed_data = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    user = relationship("User", back_populates="logs")
+    #purchase_order = relationship("PurchaseOrder", back_populates="inputs")
