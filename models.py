@@ -86,6 +86,7 @@ class OCRResult(Base):
     status = Column(String(50), nullable=False, default="手配前")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    ocrresultscol1 = Column(String(255), nullable=False, default="default_value") ## 3/31追加
 
     # user_id カラムを削除（テーブル定義書に存在しないため）
     purchase_order = relationship("PurchaseOrder", back_populates="ocr_results")
