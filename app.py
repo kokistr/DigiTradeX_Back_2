@@ -142,12 +142,12 @@ async def upload_document(
         with open(file_location, "wb") as buffer:
             buffer.write(file_content)
         
-        # OCR結果レコード作成 - user_idフィールドを除外
+        # OCR結果レコード作成 - ocrresultscol1フィールドを設定
         ocr_result = models.OCRResult(
             status="processing",
             raw_text=0,
             processed_data=json.dumps({"file_path": file_location, "original_filename": file.filename}),
-            #ocrresultscol1="default_value"  # フィールドを追加
+            ocrresultscol1="default_value"  # ocrresultscol1フィールドを追加
         )
         db.add(ocr_result)
         db.commit()
