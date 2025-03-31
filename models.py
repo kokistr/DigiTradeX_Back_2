@@ -91,8 +91,7 @@ class OCRResult(Base):
 
     ocr_id = Column(Integer, primary_key=True, index=True)
     po_id = Column(Integer, ForeignKey("PurchaseOrders.po_id"), nullable=True)
-    # raw_text = Column(Integer, nullable=False, default="0")  # Textから整数型に変更(DBの型が違う可能性あり)
-    raw_text = Column(Text, nullable=False, default="0")
+    raw_text = Column(Integer, nullable=False, default=0)  # Textから整数型に変更
     processed_data = Column(Text, nullable=True)
     status = Column(String(50), nullable=False, default="手配前")
     ocrresultscol1 = Column(String(255), nullable=False, default="default_value") ## 3/31追加
