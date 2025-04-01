@@ -488,12 +488,12 @@ async def update_po_memo(
             input_info = models.Input(
                 po_id=po_id,
                 shipment_arrangement="手配前",
-                memo=memo_data.get("memo", ""),
-                po_acquisition_date=today_date,
-                organization="未設定",
+                memo=memo_data.get("memo", "　"),
+                po_acquisition_date="　",
+                organization="　",
                 payment_status="pending",
-                invoice_number="None",  # Noneの文字列を設定
-                booking_number="None"   # Noneの文字列を設定
+                invoice_number="　",  # Noneの文字列を設定
+                booking_number="　"   # Noneの文字列を設定
             )
             db.add(input_info)
         else:
