@@ -489,7 +489,7 @@ async def update_po_memo(
                 po_id=po_id,
                 shipment_arrangement="手配前",
                 memo=memo_data.get("memo", "　"),
-                po_acquisition_date="　",
+                po_acquisition_date=today_date,
                 organization="　",
                 payment_status="pending",
                 invoice_number="　",  # Noneの文字列を設定
