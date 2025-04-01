@@ -489,7 +489,7 @@ async def update_po_memo(
                 shipment_arrangement="手配前",  # デフォルト値を設定
                 memo=memo_data.get("memo", ""),
                 po_acquisition_date=datetime.now().strftime("%Y-%m-%d"),  # 現在の日付をデフォルト値として設定
-                organization=current_user.organization or "未設定",  # 組織情報のデフォルト値
+                organization="未設定",  # 組織情報のデフォルト値
                 payment_status="pending"  # 支払い状態のデフォルト値
             )
             db.add(input_info)
