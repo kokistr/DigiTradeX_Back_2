@@ -484,13 +484,16 @@ async def update_po_memo(
         input_info = db.query(models.Input).filter(models.Input.po_id == po_id).first()
         if not input_info:
             # 入力情報がない場合は新規作成
+            today_date = datetime.now().strftime("%Y-%m-%d")
             input_info = models.Input(
                 po_id=po_id,
-                shipment_arrangement="手配前",  # デフォルト値を設定
+                shipment_arrangement="手配前",
                 memo=memo_data.get("memo", ""),
-                po_acquisition_date=datetime.now().strftime("%Y-%m-%d"),  # 現在の日付をデフォルト値として設定
-                organization="未設定",  # 組織情報のデフォルト値
-                payment_status="pending"  # 支払い状態のデフォルト値
+                po_acquisition_date=today_date,
+                organization="未設定",
+                payment_status="pending",
+                invoice_number="None",  # Noneの文字列を設定
+                booking_number="None"   # Noneの文字列を設定
             )
             db.add(input_info)
         else:
